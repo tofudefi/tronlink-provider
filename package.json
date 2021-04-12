@@ -1,0 +1,36 @@
+{
+  "name": "@tofudefi/tronlink-provider",
+  "version": "0.3.6",
+  "description": "Web3 provider that uses the `java-tron` HTTP API and tronlink.",
+  "type": "module",
+  "main": "./commonjs/lib/index.js",
+  "exports": {
+    "import": "./src/index.js",
+    "require": "./commonjs/lib/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "test": "ava"
+  },
+  "ava": {
+    "timeout": "15s",
+    "files": [
+      "!commonjs/**/*"
+    ]
+  },
+  "author": "Kevin Holder <kevholderx@gmail.com>, TofuPanda <panda@tofudefi.com>",
+  "license": "ISC",
+  "dependencies": {
+    "@tofudefi/java-tron-provider": "link:../java-tron-provider",
+    "eth-rpc-errors": "^3.0.0",
+    "json-rpc-engine": "^5.3.0",
+    "web3": "^1.2.11"
+  },
+  "devDependencies": {
+    "ava": "^3.11.1",
+    "nodemon": "^2.0.4",
+    "tronweb": "^3.0.0",
+    "typescript": "^4.0.2"
+  }
+}
