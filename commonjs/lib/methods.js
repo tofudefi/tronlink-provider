@@ -7,22 +7,41 @@ exports.eth_accounts = exports.eth_sendTransaction = void 0;
 const web3_1 = __importDefault(require("web3"));
 const java_tron_provider_2 = require("@tofudefi/java-tron-provider");
 const utils_js_1 = require("./utils.js");
-// 1000 TRX
-// TODO: use gasLimit instead?
-const DEFAULT_FEE_LIMIT = 1000000000;
+// ensures abi is tronweb compatible (new tronweb assumes abi contains
+// stateMutability prop but ABIs generated with older solc lack that prop)
+function normalizeAbi(abi) {
+    // https://solidity.readthedocs.io/en/v0.5.10/abi-spec.html#json
+    let stateMutability = abi.stateMutability;
+    if (!abi.stateMutability) {
+        if (abi.constant) {
+            stateMutability = "view";
+        }
+        else {
+            if (abi.payable) {
+                stateMutability = "payable";
+            }
+            else {
+                stateMutability = "nonpayable";
+            }
+        }
+    }
+    return {
+        stateMutability,
+        ...abi,
+    };
+}
 async function triggerSmartContract(params, ctx) {
     const { params: fnParams, functionAbi } = utils_js_1.decodeFunctionCall(params.data, ctx.functionSignatures);
-    // console.log({ params, fnParams, functionAbi });
-    const contract = tronWeb.contract([functionAbi], java_tron_provider_2.ethAddress.toTronHex(params.to));
+    const contract = tronWeb.contract([normalizeAbi(functionAbi)], java_tron_provider_2.ethAddress.toTronHex(params.to));
     const callValue = web3_1.default.utils.hexToNumber(params.value);
-    const txHash = await contract.methods[functionAbi.name](...fnParams).send({
-        // TODO: proper feeLimit, etc.
-        // TODO: why params dont show up in tronlink? maybe need to use
-        // contract[functionAbi.name] instead?
-        // from,
-        feeLimit: DEFAULT_FEE_LIMIT,
+    const sendParams = {
         callValue,
-    });
+        ...(params.gas
+            ? { feeLimit: web3_1.default.utils.hexToNumberString(params.gas) }
+            : {}),
+    };
+    console.log({ web3params: params, tronLinkParams: sendParams });
+    const txHash = await contract.methods[functionAbi.name](...fnParams).send(sendParams);
     return `0x${txHash}`;
 }
 async function simpleTransfer(params, ctx) {
