@@ -24,13 +24,30 @@ function normalizeAbi(abi) {
   };
 }
 
+function simpleDeepClone(obj) {
+    if (obj === null || typeof (obj) !== 'object' || 'isActiveClone' in obj)
+        return obj;
+
+    if (obj instanceof Date)
+        var temp = new obj.constructor(); //or new Date(obj);
+    else
+        var temp = obj.constructor();
+
+    for (var key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            temp[key] = simpleDeepClone(obj[key]);
+        }
+    }
+    return temp;
+}
+
 
 async function triggerSmartContract(params, ctx) {
   const { params: fnParams, functionAbi } = decodeFunctionCall(
     params.data,
     ctx.functionSignatures
   );
-  // console.log({ params, fnParams, functionAbi });
+
   const contract = tronWeb.contract(
     [normalizeAbi(functionAbi)],
     ethAddress.toTronHex(params.to)
@@ -44,9 +61,10 @@ async function triggerSmartContract(params, ctx) {
       ? { feeLimit: Web3.utils.hexToNumberString(params.gas) }
       : {}),
   };
-  console.log({ web3params: params, tronLinkParams: sendParams });
 
-  const txHash = await contract.methods[functionAbi.name](...fnParams).send(
+  let newFnParams = simpleDeepClone(fnParams);
+
+  const txHash = await contract.methods[functionAbi.name](...newFnParams).send(
     sendParams
   );
   return `0x${txHash}`;
